@@ -125,6 +125,7 @@ static void usart_receive_task(void *pvParameters){
   * @param  None
   * @retval None
   */
+#if 0
 static void lidar_display_task(void *pvParameters){
   //int tmp_index;
   int changed_count = 0;
@@ -149,7 +150,7 @@ static void lidar_display_task(void *pvParameters){
     vTaskDelay(1);
   }
 }
-
+#endif
 /**
   * @brief  This task used to write distance data of each degree to the buffer
   * @param  None
@@ -263,7 +264,7 @@ void sendDirectionMessage(char c){
   }
   vTaskDelay(10);
 }
-
+#if 0
 static void external_interrupt_task(void *pvParameters){
   PWM1 = 0;
   
@@ -276,7 +277,7 @@ static void external_interrupt_task(void *pvParameters){
     vTaskDelay(500);
   }
 }
-
+#endif
 void put_int(uint32_t number){
   btFlag = 1;
   unsigned char char_buff[10] = {0};
@@ -453,8 +454,8 @@ int main(void)
   STM_EVAL_LEDInit(LED6);
   STM_EVAL_LEDToggle(LED5);
   STM_EVAL_LEDToggle(LED6);
-  USART_Config();
-  USART1_Config();
+  USART_Config(115200);
+  USART1_Config(9600);
 
   /* Reset UserButton_Pressed variable */
   UserButtonPressed = 0x00;
@@ -462,7 +463,7 @@ int main(void)
   kaman_init(&kalman_s);
 
   //PWM_config();
-  //Configure_PB12();
+  Configure_PB12();
   xTaskCreate(usart_receive_task,(signed portCHAR *) "Implement USART",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Transfer_Distance_task,(signed portCHAR *) "Implement Transfer distance.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Front_Obstacle_task,(signed portCHAR *) "Implement front obstacle detect.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
@@ -473,7 +474,7 @@ int main(void)
   return 0;
 }
 
-void USART_Config(void)
+void USART_Config(uint32_t baudrate)
 {
   USART_InitTypeDef USART_InitStructure;
   NVIC_InitTypeDef NVIC_InitStructure;
@@ -503,7 +504,7 @@ void USART_Config(void)
   /* Enable the USART OverSampling by 8 */
   USART_OverSampling8Cmd(USARTx, ENABLE);  
 
-  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_BaudRate = baudrate;//115200
   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
   USART_InitStructure.USART_StopBits = USART_StopBits_1;
   USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -526,7 +527,7 @@ void USART_Config(void)
   USART_Cmd(USARTx, ENABLE);
 }
 
-void USART1_Config(void){
+void USART1_Config(uint32_t baudrate1){
 
   USART_InitTypeDef USART_InitStructure;
   NVIC_InitTypeDef NVIC_InitStructure;
@@ -556,7 +557,7 @@ void USART1_Config(void){
   /* Enable the USART OverSampling by 8 */
   USART_OverSampling8Cmd(USARTy, ENABLE);  
 
-  USART_InitStructure.USART_BaudRate = 9600;//115200;
+  USART_InitStructure.USART_BaudRate = baudrate1;//9600;
   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
   USART_InitStructure.USART_StopBits = USART_StopBits_1;
   USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -596,7 +597,7 @@ void Configure_PB12(void) {
   GPIO_InitStruct.GPIO_Pin = GPIO_Pin_12;
   GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_Init(GPIOD, &GPIO_InitStruct);
+  GPIO_Init(GPIOB, &GPIO_InitStruct);
   
   /* Tell system that you will use PB12 for EXTI_Line12 */
   SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource12);

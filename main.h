@@ -62,7 +62,8 @@ void Fail_Handler(void);
 #define LidarPacketSize          22
 #define USART_BUFFERSIZE         44
 void USARTx_IRQHandler(void);
-void USART_Config(void);
+void USART_Config(uint32_t baudrate);
+void USART1_Config(uint32_t baudrate1);
 void write_packet(void);
 
 static __IO uint8_t ubRxIndex = 0x00;
