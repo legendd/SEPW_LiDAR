@@ -103,7 +103,7 @@ int strcmp(const char *a, const char *b)
 	"   beq     strcmp_lop      \n"
 		"       sub     r0, r2, r3      \n"
 	"   bx      lr              \n"
-		:::
+	:::
 	);
 }
 
@@ -126,7 +126,7 @@ size_t strlen(const char *s)
 	"   bne  strlen_loop        \n"
 		"       sub  r0, r3, r0                 \n"
 		"       bx   lr                                 \n"
-		:::
+	:::
 	);
 }
 

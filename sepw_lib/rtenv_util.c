@@ -1,5 +1,6 @@
 #include "rtenv_util.h"
 #include <stdarg.h>
+#include <string.h>
 
 
 int atoi(const char *argv)

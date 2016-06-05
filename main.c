@@ -9,8 +9,11 @@
 #include "main.h"
 #include "stm32f4xx_conf.h"
 #include "usart.h"
+#include "motor.h"
 #include "queue.h"
 #include "semphr.h"
+#include "mpu6050.h"
+#include <string.h>
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -104,7 +107,7 @@ static void usart_receive_task(void *pvParameters){
   
   while(1){
     /* Enable the Rx interrupt */
-    USART_ITConfig(USARTx, USART_IT_RXNE, ENABLE);
+    USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
     
     /* Waiting the end of Data transfer  */ 
     while(current_received_byte < LidarPacketSize);
@@ -170,23 +173,6 @@ static void Transfer_Distance_task(void *pvParameters){
       distance_angle3 = distance_convert(lidarBuffer[count].data[8], lidarBuffer[count].data[9]);
       distance_angle4 = distance_convert(lidarBuffer[count].data[12], lidarBuffer[count].data[13]);
       
-      /*if (distance_angle1 == 0)
-      {
-        distance_angle1 = 5500;
-      }
-      if (distance_angle2 == 0)
-      {
-        distance_angle2 = 5500;
-      }
-      if (distance_angle3 == 0)
-      {
-        distance_angle3 = 5500;
-      }
-      if (distance_angle4 == 0)
-      {
-        distance_angle4 = 5500;
-      }
-*/
       int16_t c_1 = count*4;
 
       /* Write data to distance array */
@@ -195,10 +181,6 @@ static void Transfer_Distance_task(void *pvParameters){
       degree_distance[c_1 + 2] = kalman_update(distance_angle3, c_1 + 2, &kalman_s);
       degree_distance[c_1 + 3] = kalman_update(distance_angle4, c_1 + 3, &kalman_s);
 
-     // degree_distance[c_1] = distance_angle1;
-     // degree_distance[c_1 + 1] = distance_angle2;
-     // degree_distance[c_1 + 2] = distance_angle3;
-     // degree_distance[c_1 + 3] = distance_angle4;
     }
     vTaskDelay(30);
   }
@@ -278,6 +260,8 @@ static void external_interrupt_task(void *pvParameters){
   }
 }
 #endif
+
+#if 0
 void put_int(uint32_t number){
   btFlag = 1;
   unsigned char char_buff[10] = {0};
@@ -305,7 +289,7 @@ void put_int(uint32_t number){
   vTaskDelay(1);
   btFlag = 0;
 }
-
+#endif
 /**
   * @brief  Use this function to check index of receive data is in the range of correct index number.
   * @param  None
@@ -410,14 +394,14 @@ void EXTI0_IRQHandler(void)
     UserButtonPressed = 0x01;
 
 }
-
-void USARTx_IRQHandler(void)
+#if 1
+void USART3_IRQHandler(void)
 {
   /* USART in Receiver mode */
-  if ((USART_GetITStatus(USARTx, USART_IT_RXNE) == SET))
+  if ((USART_GetITStatus(USART3, USART_IT_RXNE) == SET))
   {
     /* Receive the data */
-    aRxBuffer = USART_ReceiveData(USARTx);
+    aRxBuffer = USART_ReceiveData(USART3);
     //printf("%d ", aRxBuffer);
     
     if(aRxBuffer == 250/* FA(HEX) = 250(DEC) */){
@@ -431,7 +415,7 @@ void USARTx_IRQHandler(void)
     }
   }
 }
-
+#endif
 int main(void)
 {
   RCC_ClocksTypeDef RCC_Clocks;
@@ -445,6 +429,7 @@ int main(void)
   SystemInit();
 
   //PSRAM_Init();
+  //Configure_PB12();
   FLASH_ProgramWord(TESTRESULT_ADDRESS, ALLTEST_PASS);
   /* Initialize LEDs and User_Button on STM32F4-Discovery --------------------*/
   STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
@@ -462,8 +447,14 @@ int main(void)
 
   kaman_init(&kalman_s);
 
-  //PWM_config();
-  Configure_PB12();
+  init_motor();
+  forward(0);
+
+  //MPU6050_Initialize();
+  //MPU6050_Initialize();
+
+  GPIO_SetBits(GPIOD, GPIO_Pin_13);
+  //Configure_PB12();
   xTaskCreate(usart_receive_task,(signed portCHAR *) "Implement USART",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Transfer_Distance_task,(signed portCHAR *) "Implement Transfer distance.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Front_Obstacle_task,(signed portCHAR *) "Implement front obstacle detect.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
@@ -473,113 +464,7 @@ int main(void)
 
   return 0;
 }
-
-void USART_Config(uint32_t baudrate)
-{
-  USART_InitTypeDef USART_InitStructure;
-  NVIC_InitTypeDef NVIC_InitStructure;
-  GPIO_InitTypeDef GPIO_InitStructure;
-  
-  /* Enable GPIO clock */
-  RCC_AHB1PeriphClockCmd(USARTx_TX_GPIO_CLK | USARTx_RX_GPIO_CLK, ENABLE);
-  
-  /* Enable USART clock */
-  USARTx_CLK_INIT(USARTx_CLK, ENABLE);
-  
-  /* Connect USART pins to AF7 */
-  GPIO_PinAFConfig(USARTx_TX_GPIO_PORT, USARTx_TX_SOURCE, USARTx_TX_AF);
-  GPIO_PinAFConfig(USARTx_RX_GPIO_PORT, USARTx_RX_SOURCE, USARTx_RX_AF);
-  
-  /* Configure USART Tx and Rx as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Pin = USARTx_TX_PIN;
-  GPIO_Init(USARTx_TX_GPIO_PORT, &GPIO_InitStructure);
-  
-  GPIO_InitStructure.GPIO_Pin = USARTx_RX_PIN;
-  GPIO_Init(USARTx_RX_GPIO_PORT, &GPIO_InitStructure);
-
-  /* Enable the USART OverSampling by 8 */
-  USART_OverSampling8Cmd(USARTx, ENABLE);  
-
-  USART_InitStructure.USART_BaudRate = baudrate;//115200
-  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-  USART_InitStructure.USART_StopBits = USART_StopBits_1;
-  USART_InitStructure.USART_Parity = USART_Parity_No;
-  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-  USART_Init(USARTx, &USART_InitStructure);
-  
-  /* NVIC configuration */
-  /* Configure the Priority Group to 2 bits */
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-  
-  /* Enable the USARTx Interrupt */
-  NVIC_InitStructure.NVIC_IRQChannel = USARTx_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-  
-  /* Enable USART */
-  USART_Cmd(USARTx, ENABLE);
-}
-
-void USART1_Config(uint32_t baudrate1){
-
-  USART_InitTypeDef USART_InitStructure;
-  NVIC_InitTypeDef NVIC_InitStructure;
-  GPIO_InitTypeDef GPIO_InitStructure;
-  
-  /* Enable GPIO clock */
-  RCC_AHB1PeriphClockCmd(USARTy_TX_GPIO_CLK | USARTy_RX_GPIO_CLK, ENABLE);
-  
-  /* Enable USART clock */
-  USARTy_CLK_INIT(USARTy_CLK, ENABLE);
-  
-  /* Connect USART pins to AF7 */
-  GPIO_PinAFConfig(USARTy_TX_GPIO_PORT, USARTy_TX_SOURCE, USARTy_TX_AF);
-  GPIO_PinAFConfig(USARTy_RX_GPIO_PORT, USARTy_RX_SOURCE, USARTy_RX_AF);
-  
-  /* Configure USART Tx and Rx as alternate function push-pull */
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStructure.GPIO_Pin = USARTy_TX_PIN;
-  GPIO_Init(USARTy_TX_GPIO_PORT, &GPIO_InitStructure);
-  
-  GPIO_InitStructure.GPIO_Pin = USARTy_RX_PIN;
-  GPIO_Init(USARTy_RX_GPIO_PORT, &GPIO_InitStructure);
-
-  /* Enable the USART OverSampling by 8 */
-  USART_OverSampling8Cmd(USARTy, ENABLE);  
-
-  USART_InitStructure.USART_BaudRate = baudrate1;//9600;
-  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
-  USART_InitStructure.USART_StopBits = USART_StopBits_1;
-  USART_InitStructure.USART_Parity = USART_Parity_No;
-  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-  USART_Init(USARTy, &USART_InitStructure);
-  
-  /* NVIC configuration */
-  /* Configure the Priority Group to 2 bits */
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-  
-  /* Enable the USARTx Interrupt */
-  NVIC_InitStructure.NVIC_IRQChannel = USARTy_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
-  
-  /* Enable USART */
-  USART_Cmd(USARTy, ENABLE);
-}
-
+#if 0
 void Configure_PB12(void) {
   /* Set variables used */
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -625,7 +510,7 @@ void Configure_PB12(void) {
   /* Add to NVIC */
   NVIC_Init(&NVIC_InitStruct);
 }
-
+#endif
 void EXTI15_10_IRQHandler(void) {
   /* Make sure that interrupt flag is set */
   if (EXTI_GetITStatus(EXTI_Line12) != RESET) {

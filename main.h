@@ -62,8 +62,8 @@ void Fail_Handler(void);
 #define LidarPacketSize          22
 #define USART_BUFFERSIZE         44
 void USARTx_IRQHandler(void);
-void USART_Config(uint32_t baudrate);
-void USART1_Config(uint32_t baudrate1);
+//void USART_Config(uint32_t baudrate);
+//void USART1_Config(uint32_t baudrate1);
 void write_packet(void);
 
 static __IO uint8_t ubRxIndex = 0x00;
@@ -73,8 +73,9 @@ static volatile int started_flag = 0;          // 1:After usart receive start by
 static volatile uint8_t current_packet [LidarPacketSize];
 static volatile long writed_packet_num = 1;
 
+#if 0
 //usart6
-#define USARTx                           USART3
+//#define USARTx                           USART3
 #define USARTx_CLK                       RCC_APB1Periph_USART3
 #define USARTx_CLK_INIT                  RCC_APB1PeriphClockCmd
 #define USARTx_IRQn                      USART3_IRQn
@@ -110,7 +111,7 @@ static volatile long writed_packet_num = 1;
 #define USARTy_RX_GPIO_CLK               RCC_AHB1Periph_GPIOC
 #define USARTy_RX_SOURCE                 GPIO_PinSource7
 #define USARTy_RX_AF                     GPIO_AF_USART6
-
+#endif
 
 /* Direction Suggestion */
 void direction_suggestion(void);
@@ -130,7 +131,7 @@ void PC8_9_PWM_config(void);
 void PE6_PWM_config(void);
 void PB9_PWM_config(void);
 void PD12_15_PWM_config(void);
-void Configure_PB12(void);
+//void Configure_PB12(void);
 void sendDirectionMessage(char c);
 
 /* ADC Config */
