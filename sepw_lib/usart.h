@@ -3,8 +3,8 @@
 #include "stm32f4_discovery.h"
 #include "stm32f4xx_conf.h"
 
-//usart6
-//#define USARTx                           USART3
+//usart3 for LiDAR
+#define USARTx                           USART3
 #define USARTx_CLK                       RCC_APB1Periph_USART3
 #define USARTx_CLK_INIT                  RCC_APB1PeriphClockCmd
 #define USARTx_IRQn                      USART3_IRQn
@@ -22,7 +22,7 @@
 #define USARTx_RX_SOURCE                 GPIO_PinSource11
 #define USARTx_RX_AF                     GPIO_AF_USART3
 
-// usart6
+// usart6 for Bluetooth
 #define USARTy                           USART6
 #define USARTy_CLK                       RCC_APB2Periph_USART6
 #define USARTy_CLK_INIT                  RCC_APB2PeriphClockCmd
@@ -51,13 +51,15 @@ unsigned char Receive_data ;
 volatile unsigned char received_string[MAX_STRLEN]; // this will hold the recieved string
 
 // uint32_t is from "stm32f4_discovery.h"
-extern void USART3_IRQHandler(void);
-void USART1_Config(uint32_t baudrate1);
-void USART_Config(uint32_t baudrate);
-//void init_USART();
-extern void USART_puts(USART_TypeDef* USARTx, volatile uint8_t *s);
-extern void USART_putd(USART_TypeDef* USARTx, uint32_t number);
+extern void USARTx_IRQHandler(void);
+extern void USARTy_IRQHandler(void);
+void USART6_Config(uint32_t baudrate1);
+void USART3_Config(uint32_t baudrate);
 void send_byte(char ch);
 char receive_byte();
-
+void USART_puts(USART_TypeDef* USART, volatile uint8_t *s);
+void USART_putd(USART_TypeDef* USART, uint32_t number);
+void send_byte(char ch);
+char receive_byte();
+void receive_task(void *p);
 #endif

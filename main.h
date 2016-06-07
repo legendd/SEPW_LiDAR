@@ -69,6 +69,7 @@ void write_packet(void);
 static __IO uint8_t ubRxIndex = 0x00;
 static __IO uint8_t ubTxIndex = 0x00;
 static volatile int current_received_byte = 0; // Counting for how many byte have been received after the start byte
+static volatile int bt_received_byte = 0; // Counting for how many byte have been received after the start byte
 static volatile int started_flag = 0;          // 1:After usart receive start byte "FA"   0:If usart still not receive start byte "FA"
 static volatile uint8_t current_packet [LidarPacketSize];
 static volatile long writed_packet_num = 1;
@@ -140,6 +141,9 @@ void DMA2_Stream4_IRQHandler(void);
 /* Lidar USART Config */
 void USARTx_IRQHandler(void);
 
+void USARTy_IRQHandler(void);
+volatile unsigned char received_string[16]; // this will hold the recieved string
+void receive_task(void *p);
 #endif /* __STM32F4_DISCOVERY_DEMO_H */
 
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
