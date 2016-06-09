@@ -43,7 +43,7 @@ CFLAGS+=-I$(FREERTOS_INC)
 CFLAGS+=-I$(FREERTOS_PORT_INC)
 
 #Source Files
-SRC += $(HARDWARE)/system_stm32f4xx.c $(HARDWARE)/startup_stm32f4xx.s ./sepw_lib/usart.c ./sepw_lib/motor.c ./LCD/LCD.c ./LCD/LCD_stdio.c 
+SRC += $(HARDWARE)/system_stm32f4xx.c $(HARDWARE)/startup_stm32f4xx.s ./sepw_lib/usart.c ./sepw_lib/command.c ./sepw_lib/motor.c ./LCD/LCD.c ./LCD/LCD_stdio.c 
 #SRC +=./sepw_lib/mpu6050.c
 #SRC +=./sepw_lib/mpu.c
 SRC +=./clib/__internal__.c ./clib/memory.c 
@@ -68,6 +68,10 @@ $(EXECUTABLE): main.c $(SRC)
 clean:
 	rm -rf $(EXECUTABLE)
 	rm -rf $(BIN_IMAGE)
+onekey:
+	make clean
+	make
+	make flash
 
 flash:
 	st-flash write $(BIN_IMAGE) 0x8000000

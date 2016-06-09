@@ -143,6 +143,70 @@ void USART6_Config(uint32_t baudrate1){
   /* Enable USART */
   USART_Cmd(USARTy, ENABLE);
 }
+//STM32
+void USART1_Config(uint32_t baudrate2){
+
+  USART_InitTypeDef USART_InitStructure;
+  NVIC_InitTypeDef NVIC_InitStructure;
+  GPIO_InitTypeDef GPIO_InitStructure;
+  
+  /* Enable GPIO clock */
+  //RCC_AHB2PeriphClockCmd(USARTz_TX_GPIO_CLK | USARTz_RX_GPIO_CLK, ENABLE);
+  /* enable APB2 peripheral clock for USART1 
+   * note that only USART1 and USART6 are connected to APB2
+   * the other USARTs are connected to APB1
+   */
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+  /* enable the peripheral clock for the pins used by 
+   * USART1, PB6 for TX and PB7 for RX
+   */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+  /* Enable USART clock */
+  USARTz_CLK_INIT(USARTz_CLK, ENABLE);
+  
+  /* Connect USART pins to AF7 */
+  GPIO_PinAFConfig(USARTz_TX_GPIO_PORT, USARTz_TX_SOURCE, USARTz_TX_AF);
+  GPIO_PinAFConfig(USARTz_RX_GPIO_PORT, USARTz_RX_SOURCE, USARTz_RX_AF);
+  
+  /* Configure USART Tx and Rx as alternate function push-pull */
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_InitStructure.GPIO_Pin = USARTz_TX_PIN | USARTz_RX_PIN;
+  GPIO_Init(USARTz_TX_GPIO_PORT, &GPIO_InitStructure);
+  
+  GPIO_InitStructure.GPIO_Pin = USARTz_RX_PIN;
+  GPIO_Init(USARTz_RX_GPIO_PORT, &GPIO_InitStructure);
+
+  /* Enable the USART OverSampling by 8 */
+  //USART_OverSampling8Cmd(USARTz, ENABLE);  
+
+  USART_InitStructure.USART_BaudRate = baudrate2;//9600;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  USART_Init(USARTz, &USART_InitStructure);
+  
+  /* NVIC configuration */
+  /* Configure the Priority Group to 2 bits */
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+  
+  /* Enable the USARTx Interrupt */
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+  NVIC_InitStructure.NVIC_IRQChannel = USARTz_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+  
+  /* Enable USART */
+  USART_Cmd(USARTz, ENABLE);
+}
 
 void USART_puts(USART_TypeDef* USART, volatile uint8_t *s)
 {

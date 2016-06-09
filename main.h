@@ -61,7 +61,7 @@ void Fail_Handler(void);
 #define LidarPacketNumber        90
 #define LidarPacketSize          22
 #define USART_BUFFERSIZE         44
-void USARTx_IRQHandler(void);
+//void USARTx_IRQHandler(void);
 //void USART_Config(uint32_t baudrate);
 //void USART1_Config(uint32_t baudrate1);
 void write_packet(void);
@@ -140,10 +140,15 @@ void DMA2_Stream4_IRQHandler(void);
 
 /* Lidar USART Config */
 void USARTx_IRQHandler(void);
-
+/* BT USART Config */
 void USARTy_IRQHandler(void);
+/* STM2Pi USART Config */
+//void USARTz_IRQHandler(void);
 volatile unsigned char received_string[16]; // this will hold the recieved string
-void receive_task(void *p);
+volatile unsigned char pi_received_string[16]; // this will hold the recieved string
+extern void receive_command();
+extern void receive_pi_command();
+
 #endif /* __STM32F4_DISCOVERY_DEMO_H */
 
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

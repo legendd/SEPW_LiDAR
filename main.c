@@ -51,7 +51,10 @@ volatile int btFlag = 0;
 const int sin_array[90] = {0, 17, 35, 53, 71, 89, 107, 124, 142, 160, 177, 195, 212, 230, 247, 265, 282, 299, 316, 333, 350, 366, 383, 400, 416, 432, 448, 464, 480, 496, 511, 527, 542, 557, 572, 587, 601, 616, 630, 644, 658, 671, 685, 698, 711, 724, 736, 748, 760, 772, 784, 795, 806, 817, 828, 838, 848, 858, 868, 877, 886, 895, 904, 912, 920, 928, 935, 942, 949, 955, 962, 968, 973, 979, 984, 989, 993, 997, 1001, 1005, 1008, 1011, 1014, 1016, 1018, 1020, 1021, 1022, 1023, 1023};
 unsigned char LiDAR_RxBuffer = 0;
 unsigned char BT_RxBuffer = 0;
+unsigned char Pi_RxBuffer = 0;
+
 uint8_t Receive_String_Ready=0;
+uint8_t Pi_Receive_String_Ready=0;
 int16_t degree_distance[180] = {0};    /* Use this array to store distance information of front 180 degree */
 int min_distance[9] = {0};
 int check_sum(void);
@@ -128,7 +131,7 @@ static void usart_receive_task(void *pvParameters){
   }
 }
 /**
-  * @brief  Use this task to read and check the data sent from Lidar.
+  * @brief  Use this task to read and check the data sent from Bluetooth(PC Tablet/Android APP).
   * @param  None
   * @retval None
   */
@@ -143,6 +146,25 @@ static void bt_receive_task(void *pvParameters){
     
     /* disable USART interrupt */
     NVIC_DisableIRQ(USARTy_IRQn);
+    vTaskDelay(10);
+  }
+}
+/**
+  * @brief  Use this task to read and check the data sent from Bluetooth(PC Tablet/Android APP).
+  * @param  None
+  * @retval None
+  */
+static void pi_receive_task(void *pvParameters){
+  
+  while(1){
+    /* Enable the Rx interrupt */
+    USART_ITConfig(USARTz, USART_IT_RXNE, ENABLE);
+    
+    /* Waiting the end of Data transfer  */ 
+    while(!Pi_Receive_String_Ready);
+    
+    /* disable USART interrupt */
+    NVIC_DisableIRQ(USARTz_IRQn);
     vTaskDelay(10);
   }
 }
@@ -455,42 +477,81 @@ void USARTy_IRQHandler(void)
     static uint8_t cnt = 0; // this counter is used to determine the string length
     BT_RxBuffer = USART_ReceiveData(USARTy);
     GPIO_ResetBits(GPIOD, GPIO_Pin_13);
-    if(cnt < 16){
-        received_string[cnt] = BT_RxBuffer;
-        if(BT_RxBuffer=='0') GPIO_ToggleBits(GPIOD,GPIO_Pin_15);
+    //if(!Receive_String_Ready){
+      if(cnt < 16){
+          received_string[cnt] = BT_RxBuffer;
+          if(BT_RxBuffer=='0') GPIO_ToggleBits(GPIOD,GPIO_Pin_15);
 
-        /*start determine the period of command.*/
-        if(received_string[cnt]=='\n'){
-            Receive_String_Ready = 1; /*Ready to parse the command */
-            cnt=0; /*restart to accept next stream message.*/
-        }
-        else{
-          cnt++;
-        }
-    }
-    else{ // over the max string length, cnt return to zero.
-      Receive_String_Ready=1;
-      cnt = 0;  
-    }
+          /*start determine the period of command.*/
+          if(BT_RxBuffer=='\r'){
+              Receive_String_Ready = 1; /*Ready to parse the command */
+              cnt=0; /*restart to accept next stream message.*/
+          }
+          else{
+            cnt++;
+          }
+      }
+      else{ // over the max string length, cnt return to zero.
+        Receive_String_Ready=1;
+        cnt = 0;  
+      }
+    //}
     #if 1
     if(Receive_String_Ready){
-      //print the content of the received string
-      //GPIO_SetBits(GPIOD, GPIO_Pin_13);
       USART_puts(USART6, received_string);
-      USART_puts(USART6,"\r\n");
-      // /receive_task();
+      USART_puts(USART6, "\r\n");
+      //receive_command();
       /*clear the received string and the flag*/
       Receive_String_Ready = 0;
       int i;
-      for( i = 0 ; i< 16 ; i++){
+      for( i = 0 ; i < 16 ; i++){
         received_string[i]= 0;
-      }
-      
+      }      
     }
     #endif
 }
 }
 #endif
+
+#if 1
+// USART3 IRQ Handler. Receive LiDAR data.
+void USARTz_IRQHandler(void)
+{
+  /* USART3 in Receiver mode */
+  if ((USART_GetITStatus(USARTz, USART_IT_RXNE) == SET))
+  {
+    static uint8_t count = 0; // this counter is used to determine the string length
+    /* Receive the data */
+    Pi_RxBuffer = USART_ReceiveData(USARTz);
+    
+    if(count < 16){
+      pi_received_string[count] = Pi_RxBuffer;
+      if (Pi_RxBuffer=='\r'){
+          Pi_Receive_String_Ready = 1;
+          count = 0;
+      }
+      else{
+        count++;
+      }
+    }
+    else{
+      Pi_Receive_String_Ready = 1;
+      count = 0;
+    }
+    if(Pi_Receive_String_Ready){
+      USART_puts(USART1, pi_received_string);
+      USART_puts(USART1, "\r\n");
+      /*clear the received string and the flag*/
+      Pi_Receive_String_Ready = 0;
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        pi_received_string[j]= 0;
+      }
+    }      
+  }
+}
+#endif
+
 
 int main(void)
 {
@@ -519,6 +580,8 @@ int main(void)
   USART3_Config(115200);
   // Bluetooth
   USART6_Config(9600);
+  // STM32 -> Pi
+  USART1_Config(9600);
 
   /* Reset UserButton_Pressed variable */
   UserButtonPressed = 0x00;
@@ -535,6 +598,7 @@ int main(void)
   //Configure_PB12();
   xTaskCreate(usart_receive_task,(signed portCHAR *) "Implement USART",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(bt_receive_task,(signed portCHAR *) "BT Receive",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
+  xTaskCreate(pi_receive_task,(signed portCHAR *) "Pi USART",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Transfer_Distance_task,(signed portCHAR *) "Implement Transfer distance.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   xTaskCreate(Front_Obstacle_task,(signed portCHAR *) "Implement front obstacle detect.",512 /* stack size */, NULL, tskIDLE_PRIORITY + 3, NULL);
   

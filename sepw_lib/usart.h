@@ -41,20 +41,37 @@
 #define USARTy_RX_SOURCE                 GPIO_PinSource7
 #define USARTy_RX_AF                     GPIO_AF_USART6
 
+// usart1 for STM to Pi communication
+#define USARTz                           USART1
+#define USARTz_CLK                       RCC_APB2Periph_USART1
+#define USARTz_CLK_INIT                  RCC_APB2PeriphClockCmd
+#define USARTz_IRQn                      USART1_IRQn
+#define USARTz_IRQHandler                USART1_IRQHandler
 
-/*the usart acept the command from RX when RX interrupt is trigger*/
-unsigned char Receive_data ;
+#define USARTz_TX_PIN                    GPIO_Pin_6                
+#define USARTz_TX_GPIO_PORT              GPIOB                       
+#define USARTz_TX_GPIO_CLK               RCC_AHB1Periph_GPIOB
+#define USARTz_TX_SOURCE                 GPIO_PinSource6
+#define USARTz_TX_AF                     GPIO_AF_USART1
+
+#define USARTz_RX_PIN                    GPIO_Pin_7                
+#define USARTz_RX_GPIO_PORT              GPIOB                    
+#define USARTz_RX_GPIO_CLK               RCC_AHB1Periph_GPIOB
+#define USARTz_RX_SOURCE                 GPIO_PinSource7
+#define USARTz_RX_AF                     GPIO_AF_USART1
+
 
 /*Setting the USART MAX string lenth */
 #define MAX_STRLEN 16 // this is the maximum string length of our string in characters
 
-volatile unsigned char received_string[MAX_STRLEN]; // this will hold the recieved string
-
 // uint32_t is from "stm32f4_discovery.h"
 extern void USARTx_IRQHandler(void);
 extern void USARTy_IRQHandler(void);
+extern void USARTz_IRQHandler(void);
+
 void USART6_Config(uint32_t baudrate1);
 void USART3_Config(uint32_t baudrate);
+void USART1_Config(uint32_t baudrate2);
 void send_byte(char ch);
 char receive_byte();
 void USART_puts(USART_TypeDef* USART, volatile uint8_t *s);
