@@ -514,7 +514,7 @@ void USARTy_IRQHandler(void)
 #endif
 
 #if 1
-// USART3 IRQ Handler. Receive LiDAR data.
+// USART3 IRQ Handler. Receive RPi data.
 void USARTz_IRQHandler(void)
 {
   /* USART3 in Receiver mode */
@@ -523,10 +523,37 @@ void USARTz_IRQHandler(void)
     static uint8_t count = 0; // this counter is used to determine the string length
     /* Receive the data */
     Pi_RxBuffer = USART_ReceiveData(USARTz);
-    
+    #if 0
+    if(!Pi_Receive_String_Ready){
+      pi_received_string[count] = Pi_RxBuffer;
+      if (Pi_RxBuffer=='\n'){
+          Pi_Receive_String_Ready = 1;
+          count = 0;
+      }
+      else{
+        count++;
+      }
+    }
+    else{
+      if(Pi_RxBuffer == "1"){
+        USART_puts(USART6, "Hello 1");
+        USART_puts(USART6, "\r\n");
+      }
+      else if(Pi_RxBuffer == "2"){
+        USART_puts(USART6, "Hello 2");
+        USART_puts(USART6, "\r\n");
+      }
+      Pi_Receive_String_Ready = 0;
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        pi_received_string[j]= 0;
+      }
+    }
+    #endif
+    #if 1
     if(count < 16){
       pi_received_string[count] = Pi_RxBuffer;
-      if (Pi_RxBuffer=='\r'){
+      if (Pi_RxBuffer=='\n'){
           Pi_Receive_String_Ready = 1;
           count = 0;
       }
@@ -539,15 +566,19 @@ void USARTz_IRQHandler(void)
       count = 0;
     }
     if(Pi_Receive_String_Ready){
-      USART_puts(USART1, pi_received_string);
-      USART_puts(USART1, "\r\n");
+      USART_puts(USART6, "\n\rPrint:");
+      // "pi_received_string" include '\n', because it represents the end of the instruction.
+      // '\n' is sent from RPi in python(pySerial)
+      USART_puts(USART6, pi_received_string);
+      USART_puts(USART6, "\r");
       /*clear the received string and the flag*/
       Pi_Receive_String_Ready = 0;
       int j;
       for( j = 0 ; j < 16 ; j++){
         pi_received_string[j]= 0;
       }
-    }      
+    }   
+    #endif   
   }
 }
 #endif
