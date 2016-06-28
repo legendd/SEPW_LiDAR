@@ -6,7 +6,7 @@
 #define DEBUG_MODE		0
 #define USER_MODE		!DEBUG_MODE
 
-extern uint8_t Receive_String_Ready;
+extern uint8_t Pi_Receive_String_Ready;
 
 void receive_command();
 void receive_pi_command();

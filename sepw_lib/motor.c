@@ -9,14 +9,84 @@
 #define TimPrescaler 7
 #define SpeedValue 595 //SpeedValue = TimPeriod * duty cycle (1200*0.5)
 uint32_t SpeedValue_left = SpeedValue;
+uint32_t SpeedValue_right = SpeedValue;
 
 
-void forward(uint32_t SpeedValue_left){
+void motorForward(){
+  GPIO_WriteBit(MOTOR_PWM_PORT ,MOTOR_LEFT_IN1_PIN,Bit_SET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
+  TIM_SetCompare3(TIM4, 1200);    
+  TIM_SetCompare4(TIM4, 1200);
+}
+void motorStop(){
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);   /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);  /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
+  TIM_SetCompare3(TIM4, 0);
+  TIM_SetCompare4(TIM4, 0);
+}
+void motorLeft(uint32_t lValue1, uint32_t rValue1){
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_SET);   /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
+  TIM_SetCompare3(TIM4, lValue1);
+  // Right Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);  /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
+  TIM_SetCompare4(TIM4, rValue1);
+}
+void motorRight(uint32_t lValue2, uint32_t rValue2){
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_SET);   /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
+  TIM_SetCompare3(TIM4, lValue2);
+  // Right Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);  /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
+  TIM_SetCompare4(TIM4, rValue2);
+}
+
+/* STOP: Reset PWM value to initial setting
+ * EX:mStop(1,0) to stop left motor
+ *    mStop(1,1) to stop both motors */
+void mStop(uint8_t mstop){
+  if((mstop == mLeft) || (mstop == mBoth)){
+    SpeedValue_left = SpeedValue;
+    TIM_SetCompare3(TIM4, SpeedValue);
+  }
+  if((mstop == mRight) || (mstop == mBoth)){
+    SpeedValue_right = SpeedValue;
+    TIM_SetCompare4(TIM4, SpeedValue);
+  }
+}
+
+void mMove(uint32_t SpeedValue_left, uint32_t SpeedValue_right){
   TIM_SetCompare3(TIM4, SpeedValue_left);
+  TIM_SetCompare4(TIM4, SpeedValue_right);
 }
 
 void init_motor(void){
   init_motorPWM();
+  init_motor_driver();
+}
+
+void init_motor_driver(void){
+  GPIO_InitTypeDef GPIO_InitStruct;
+  /* Enable GPIO D clock. */
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+  GPIO_InitStruct.GPIO_Pin =  MOTOR_LEFT_IN1_PIN| MOTOR_LEFT_IN2_PIN | MOTOR_RIGHT_IN3_PIN | MOTOR_RIGHT_IN4_PIN ;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;            // Alt Function - Push Pull
+  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+  GPIO_Init( MOTOR_PWM_PORT, &GPIO_InitStruct ); 
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);   /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);  /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
 }
 
 void init_motorPWM(void){

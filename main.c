@@ -523,41 +523,22 @@ void USARTz_IRQHandler(void)
     static uint8_t count = 0; // this counter is used to determine the string length
     /* Receive the data */
     Pi_RxBuffer = USART_ReceiveData(USARTz);
-    #if 0
-    if(!Pi_Receive_String_Ready){
-      pi_received_string[count] = Pi_RxBuffer;
-      if (Pi_RxBuffer=='\n'){
-          Pi_Receive_String_Ready = 1;
-          count = 0;
-      }
-      else{
-        count++;
-      }
-    }
-    else{
-      if(Pi_RxBuffer == "1"){
-        USART_puts(USART6, "Hello 1");
-        USART_puts(USART6, "\r\n");
-      }
-      else if(Pi_RxBuffer == "2"){
-        USART_puts(USART6, "Hello 2");
-        USART_puts(USART6, "\r\n");
-      }
-      Pi_Receive_String_Ready = 0;
-      int j;
-      for( j = 0 ; j < 16 ; j++){
-        pi_received_string[j]= 0;
-      }
-    }
-    #endif
     #if 1
-    if(count < 16){
-      pi_received_string[count] = Pi_RxBuffer;
-      if (Pi_RxBuffer=='\n'){
+    if(count < 16 && Pi_Receive_String_Ready != 1){
+      //pi_received_string[count] = Pi_RxBuffer;
+      if (Pi_RxBuffer=='q'){
+          pi_received_string[count] = '\0';
           Pi_Receive_String_Ready = 1;
+          /*USART_puts(USART6, "\r\ncount");
+          USART_putd(USART6, count);
+          USART_puts(USART6, "\r\n");*/
           count = 0;
       }
+      else if (Pi_RxBuffer=='s'){
+
+      }
       else{
+        pi_received_string[count] = Pi_RxBuffer;
         count++;
       }
     }
@@ -566,11 +547,14 @@ void USARTz_IRQHandler(void)
       count = 0;
     }
     if(Pi_Receive_String_Ready){
-      USART_puts(USART6, "\n\rPrint:");
       // "pi_received_string" include '\n', because it represents the end of the instruction.
       // '\n' is sent from RPi in python(pySerial)
+      /*USART_puts(USART6, "\r\n");
       USART_puts(USART6, pi_received_string);
-      USART_puts(USART6, "\r");
+      USART_puts(USART6, "\r\n");
+      */
+      //USART_puts(USART6, ":");
+      receive_pi_command();
       /*clear the received string and the flag*/
       Pi_Receive_String_Ready = 0;
       int j;
@@ -603,10 +587,10 @@ int main(void)
   STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI);
 
   /* Initialize LEDs to be managed by GPIO */
-  STM_EVAL_LEDInit(LED5);
-  STM_EVAL_LEDInit(LED6);
-  STM_EVAL_LEDToggle(LED5);
-  STM_EVAL_LEDToggle(LED6);
+  //STM_EVAL_LEDInit(LED5);
+  //STM_EVAL_LEDInit(LED6);
+  //STM_EVAL_LEDToggle(LED5);
+  //STM_EVAL_LEDToggle(LED6);
   // LiDAR
   USART3_Config(115200);
   // Bluetooth
@@ -620,7 +604,6 @@ int main(void)
   kaman_init(&kalman_s);
 
   init_motor();
-  forward(0);
 
   //MPU6050_Initialize();
   //MPU6050_Initialize();
@@ -638,53 +621,7 @@ int main(void)
 
   return 0;
 }
-#if 0
-void Configure_PB12(void) {
-  /* Set variables used */
-  GPIO_InitTypeDef GPIO_InitStruct;
-  EXTI_InitTypeDef EXTI_InitStruct;
-  NVIC_InitTypeDef NVIC_InitStruct;
-  
-  /* Enable clock for GPIOB */
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-  /* Enable clock for SYSCFG */
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  
-  /* Set pin as input */
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_12;
-  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_Init(GPIOB, &GPIO_InitStruct);
-  
-  /* Tell system that you will use PB12 for EXTI_Line12 */
-  SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOB, EXTI_PinSource12);
-  
-  /* PB12 is connected to EXTI_Line12 */
-  EXTI_InitStruct.EXTI_Line = EXTI_Line12;
-  /* Enable interrupt */
-  EXTI_InitStruct.EXTI_LineCmd = ENABLE;
-  /* Interrupt mode */
-  EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
-  /* Triggers on rising and falling edge */
-  EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising_Falling;
-  /* Add to EXTI */
-  EXTI_Init(&EXTI_InitStruct);
 
-  /* Add IRQ vector to NVIC */
-  /* PB12 is connected to EXTI_Line12, which has EXTI15_10_IRQn vector */
-  NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
-  /* Set priority */
-  NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x00;
-  /* Set sub priority */
-  NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x01;
-  /* Enable interrupt */
-  NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-  /* Add to NVIC */
-  NVIC_Init(&NVIC_InitStruct);
-}
-#endif
 void EXTI15_10_IRQHandler(void) {
   /* Make sure that interrupt flag is set */
   if (EXTI_GetITStatus(EXTI_Line12) != RESET) {
