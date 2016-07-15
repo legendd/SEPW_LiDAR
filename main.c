@@ -55,7 +55,7 @@ unsigned char Pi_RxBuffer = 0;
 
 uint8_t Receive_String_Ready=0;
 uint8_t Pi_Receive_String_Ready=0;
-int16_t degree_distance[180] = {0};    /* Use this array to store distance information of front 180 degree */
+uint32_t degree_distance[180] = {0};    /* Use this array to store distance information of front 180 degree */
 int min_distance[9] = {0};
 int check_sum(void);
 int check_index(unsigned int);
@@ -226,7 +226,10 @@ static void Transfer_Distance_task(void *pvParameters){
       degree_distance[c_1 + 1] = kalman_update(distance_angle2, c_1 + 1, &kalman_s);
       degree_distance[c_1 + 2] = kalman_update(distance_angle3, c_1 + 2, &kalman_s);
       degree_distance[c_1 + 3] = kalman_update(distance_angle4, c_1 + 3, &kalman_s);
-
+      Lidar_distance[c_1] = degree_distance[c_1];
+      Lidar_distance[c_1+1] = degree_distance[c_1+1];
+      Lidar_distance[c_1+2] = degree_distance[c_1+2];
+      Lidar_distance[c_1+3] = degree_distance[c_1+3];
     }
     vTaskDelay(30);
   }
@@ -272,8 +275,10 @@ static void Front_Obstacle_task(void *pvParameters){
       if (((range_distance[range_count*2] < range_alarm_distance[range_count]) & valid_distance[range_count*2]) || ((range_distance[range_count*2 + 1] < range_alarm_distance[range_count]) & valid_distance[range_count*2 + 1])){
         current_status = 'A';
         sendDirectionMessage(alarm_message[range_count]);
+        
       } else{
         sendDirectionMessage(safe_message[range_count]);
+        
       }
     }
 
@@ -483,9 +488,41 @@ void USARTy_IRQHandler(void)
           if(BT_RxBuffer=='0') GPIO_ToggleBits(GPIOD,GPIO_Pin_15);
 
           /*start determine the period of command.*/
-          if(BT_RxBuffer=='\r'){
+          else if(BT_RxBuffer=='\n'){
               Receive_String_Ready = 1; /*Ready to parse the command */
               cnt=0; /*restart to accept next stream message.*/
+          }
+          //{'o', 'n', 'm', 'l', 'k', 'j', 'i', 'h', 'g'}
+
+          // Start Tracking = z
+          else if(BT_RxBuffer=='z'){
+              Receive_String_Ready = 2; /*Ready to Start tracking */
+              cnt=0; 
+          }
+          // Forward = y
+          else if(BT_RxBuffer=='y'){
+              Receive_String_Ready = 3; /*Ready to Start tracking */
+              cnt=0; 
+          }
+          // backward = x
+          else if(BT_RxBuffer=='x'){
+              Receive_String_Ready = 4; /*Ready to Start tracking */
+              cnt=0; 
+          }
+          // left = t
+          else if(BT_RxBuffer=='t'){
+              Receive_String_Ready = 5; /*Ready to Start tracking */
+              cnt=0; 
+          }
+          // right = r
+          else if(BT_RxBuffer=='r'){
+              Receive_String_Ready = 6; /*Ready to Start tracking */
+              cnt=0; 
+          }
+          // stop = s
+          else if(BT_RxBuffer=='s'){
+              Receive_String_Ready = 7; /*Ready to Start tracking */
+              cnt=0; 
           }
           else{
             cnt++;
@@ -497,7 +534,7 @@ void USARTy_IRQHandler(void)
       }
     //}
     #if 1
-    if(Receive_String_Ready){
+    if(Receive_String_Ready == 1){
       USART_puts(USART6, received_string);
       USART_puts(USART6, "\r\n");
       //receive_command();
@@ -508,13 +545,62 @@ void USARTy_IRQHandler(void)
         received_string[i]= 0;
       }      
     }
+    // start auto-mode stark tracking && send command to raspberry pi
+    else if(Receive_String_Ready == 2){
+      USART_puts(USART1, "z");
+      //USART_puts(USART6, "z");
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
+    // Forward
+    else if(Receive_String_Ready == 3){
+      motorForward();
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
+    // Backward
+    else if(Receive_String_Ready == 4){
+      motorBackward();
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
+    // Left
+    else if(Receive_String_Ready == 5){
+      Left();
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
+    // Right
+    else if(Receive_String_Ready == 6){
+      Right();
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
+    // Stop
+    else if(Receive_String_Ready == 7){
+      motorStop();
+      int j;
+      for( j = 0 ; j < 16 ; j++){
+        received_string[j]= 0;
+      }   
+    }
     #endif
 }
 }
 #endif
 
 #if 1
-// USART3 IRQ Handler. Receive RPi data.
+// USART3 IRQ Handler. Receive RPi data.(data after image processing)
 void USARTz_IRQHandler(void)
 {
   /* USART3 in Receiver mode */
@@ -529,13 +615,20 @@ void USARTz_IRQHandler(void)
       if (Pi_RxBuffer=='q'){
           pi_received_string[count] = '\0';
           Pi_Receive_String_Ready = 1;
+          USART_SendData(USARTy, 'p');
           /*USART_puts(USART6, "\r\ncount");
           USART_putd(USART6, count);
           USART_puts(USART6, "\r\n");*/
           count = 0;
       }
+      // stop bit
       else if (Pi_RxBuffer=='s'){
-
+        // Start flag 
+      }
+      // no object detected
+      else if (Pi_RxBuffer=='w'){
+        motorStop();
+        USART_SendData(USARTy, 'q');
       }
       else{
         pi_received_string[count] = Pi_RxBuffer;
@@ -549,11 +642,8 @@ void USARTz_IRQHandler(void)
     if(Pi_Receive_String_Ready){
       // "pi_received_string" include '\n', because it represents the end of the instruction.
       // '\n' is sent from RPi in python(pySerial)
-      /*USART_puts(USART6, "\r\n");
-      USART_puts(USART6, pi_received_string);
-      USART_puts(USART6, "\r\n");
-      */
-      //USART_puts(USART6, ":");
+      
+      // Must implement turning inside this
       receive_pi_command();
       /*clear the received string and the flag*/
       Pi_Receive_String_Ready = 0;

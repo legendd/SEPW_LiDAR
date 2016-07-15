@@ -146,6 +146,8 @@ void USARTy_IRQHandler(void);
 //void USARTz_IRQHandler(void);
 volatile unsigned char received_string[16]; // this will hold the recieved string
 volatile unsigned char pi_received_string[16]; // this will hold the recieved string
+volatile uint32_t Lidar_distance[180];    /* Use this array to store distance information of front 180 degree */
+//extern int16_t degree_distance[180] = {0};
 extern void receive_command();
 extern void receive_pi_command();
 

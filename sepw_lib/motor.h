@@ -2,6 +2,7 @@
 #define MOTOR_H
 #include "stm32f4_discovery.h"
 #include "stm32f4xx.h"
+#include "main.h"
 
 enum {
 	mLeft,
@@ -28,10 +29,13 @@ enum {
 void init_motorPWM(void);
 void init_motor_driver(void);
 void motorForward();
+void motorBackward();
 void motorStop();
 void init_motor(void);
 void mMove(uint32_t SpeedValue_left, uint32_t SpeedValue_right);
 void mStop(uint8_t mstop);
 void motorLeft(uint32_t lValue1, uint32_t rValue1);
 void motorRight(uint32_t lValue2, uint32_t rValue2);
+void Left();
+void Right();
 #endif

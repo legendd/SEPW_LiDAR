@@ -4,49 +4,79 @@
 #include "stm32f4xx.h"
 #include "motor.h"
 
-
+#define MaxPWM 0
+#define MinPWM 1200
 #define TimPeriod 1200
 #define TimPrescaler 7
 #define SpeedValue 595 //SpeedValue = TimPeriod * duty cycle (1200*0.5)
 uint32_t SpeedValue_left = SpeedValue;
 uint32_t SpeedValue_right = SpeedValue;
-
+// IN1(+) In2(-) : Right Motor Forward
+// In3(+) In4(-) : Left Motor Forward
 
 void motorForward(){
-  GPIO_WriteBit(MOTOR_PWM_PORT ,MOTOR_LEFT_IN1_PIN,Bit_SET);    /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);    /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
-  TIM_SetCompare3(TIM4, 1200);    
-  TIM_SetCompare4(TIM4, 1200);
+  GPIO_WriteBit(MOTOR_PWM_PORT ,MOTOR_LEFT_IN1_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_SET);   /* 0 */
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_SET);  /* 0 */
+  TIM_SetCompare3(TIM4, MaxPWM);    
+  TIM_SetCompare4(TIM4, MaxPWM);
+}
+void motorBackward(){
+  GPIO_WriteBit(MOTOR_PWM_PORT ,MOTOR_LEFT_IN1_PIN,Bit_SET);  /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);     /* 1 */
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);  /* 0 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);    /* 1 */
+  TIM_SetCompare3(TIM4, MaxPWM);    
+  TIM_SetCompare4(TIM4, MaxPWM);
 }
 void motorStop(){
   GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);   /* 0 */       
   GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
   GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);  /* 0 */       
   GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
-  TIM_SetCompare3(TIM4, 0);
-  TIM_SetCompare4(TIM4, 0);
+  TIM_SetCompare3(TIM4, MinPWM);
+  TIM_SetCompare4(TIM4, MinPWM);
 }
 void motorLeft(uint32_t lValue1, uint32_t rValue1){
-  // Left Motor
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_SET);   /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
-  TIM_SetCompare3(TIM4, lValue1);
   // Right Motor
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);  /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
-  TIM_SetCompare4(TIM4, rValue1);
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);     /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_SET);   /* 0 */
+  TIM_SetCompare3(TIM4, rValue1);
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_SET);  /* 0 */
+  TIM_SetCompare4(TIM4, lValue1);
 }
 void motorRight(uint32_t lValue2, uint32_t rValue2){
-  // Left Motor
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_SET);   /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_RESET);   /* 0 */
-  TIM_SetCompare3(TIM4, lValue2);
   // Right Motor
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_SET);  /* 1 */       
-  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_RESET);  /* 0 */
-  TIM_SetCompare4(TIM4, rValue2);
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);     /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_SET);   /* 0 */
+  TIM_SetCompare3(TIM4, rValue2);
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_SET);  /* 0 */
+  TIM_SetCompare4(TIM4, lValue2);
+}
+void Left(){
+  // Right Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);     /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_SET);   /* 0 */
+  TIM_SetCompare3(TIM4, MaxPWM);
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_SET);  /* 0 */
+  TIM_SetCompare4(TIM4, SpeedValue);
+}
+void Right(){
+  // Right Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN1_PIN,Bit_RESET);     /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_LEFT_IN2_PIN,Bit_SET);   /* 0 */
+  TIM_SetCompare3(TIM4, SpeedValue);
+  // Left Motor
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN3_PIN,Bit_RESET);    /* 1 */       
+  GPIO_WriteBit(MOTOR_PWM_PORT,MOTOR_RIGHT_IN4_PIN,Bit_SET);  /* 0 */
+  TIM_SetCompare4(TIM4, MaxPWM);
 }
 
 /* STOP: Reset PWM value to initial setting
