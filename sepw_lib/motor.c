@@ -4,7 +4,7 @@
 #include "stm32f4xx.h"
 #include "motor.h"
 
-#define MaxPWM 0
+#define MaxPWM 300
 #define MinPWM 1200
 #define TimPeriod 1200
 #define TimPrescaler 7

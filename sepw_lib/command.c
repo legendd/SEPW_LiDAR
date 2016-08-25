@@ -37,6 +37,7 @@ void receive_pi_command(){
 		pos_received_x1[0] = pos_received_x[1];
 		pos_received_x1[1] = pos_received_x[2];
 		pts_x = atoi(pos_received_x1);
+		motorStop();
 	}
 	else
 		pts_x = atoi(pos_received_x);
@@ -44,6 +45,7 @@ void receive_pi_command(){
 		pos_received_y1[0] = pos_received_y[1];
 		pos_received_y1[1] = pos_received_y[2];
 		pts_y = atoi(pos_received_y1);
+		motorStop();
 	}
 	else
 		pts_y = atoi(pos_received_y);
@@ -56,7 +58,7 @@ void receive_pi_command(){
 
 	// degree of lidar data
 	lidar_Pos = pts_x*9/32;
-	motorForward();
+	//motorForward();
 	
 	object_distance = Lidar_distance[lidar_Pos];
 #if	0
@@ -70,18 +72,20 @@ void receive_pi_command(){
 	USART_putd(USART6, object_distance);
 
 #endif
-	#if	0
+	#if	1
 	// Motor moving
 	if(pts_x < 320){
 		// motorLeft(lValue, rValue)
-		motorLeft(pts_x, 0);
-		vTaskDelay(300);
+		Left();
+		//vTaskDelay(300);
 	}
-	else
+	else 
 	{
-		motorRight(0, pts_x);
-		vTaskDelay(300);
+		Right();
+		//vTaskDelay(300);
 	}
+	//motorStop();
+	//vTaskDelay(10);
 #endif
 	for(i = 0; i < 3; i++){
 		pos_received_x[i] = 0;
